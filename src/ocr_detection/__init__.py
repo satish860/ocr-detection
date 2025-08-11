@@ -2,6 +2,23 @@
 
 from .detector import PDFAnalyzer, PageType, AnalysisResult
 from .analyzer import ContentAnalyzer
+from .api import OCRDetector, PageRecommendation, PageAnalysis, PDFAnalysisResult
+from .simple import OCRDetection, OCRStatus, detect_ocr
 
 __version__ = "0.1.0"
-__all__ = ["PDFAnalyzer", "PageType", "AnalysisResult", "ContentAnalyzer"]
+__all__ = [
+    # Core classes
+    "PDFAnalyzer", 
+    "PageType", 
+    "AnalysisResult", 
+    "ContentAnalyzer",
+    # Enhanced API
+    "OCRDetector",
+    "PageRecommendation",
+    "PageAnalysis", 
+    "PDFAnalysisResult",
+    # Simple API
+    "OCRDetection",
+    "OCRStatus", 
+    "detect_ocr"
+]

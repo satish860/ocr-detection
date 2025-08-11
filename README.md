@@ -30,6 +30,53 @@ pip install -e .
 
 ## Quick Start
 
+### Python Library Usage
+
+#### Simple API (Recommended)
+
+```python
+from ocr_detection import OCRDetection, detect_ocr
+
+# Method 1: Using the class
+detector = OCRDetection()
+result = detector.detect("document.pdf")
+
+print(result)
+# Output: {"status": "partial", "pages": [1, 3, 7, 12]}
+
+# Method 2: Using the convenience function
+result = detect_ocr("document.pdf")
+
+if result['status'] == "true":
+    print("All pages need OCR")
+elif result['status'] == "false":
+    print("No pages need OCR")
+else:  # partial
+    print(f"Pages needing OCR: {result['pages']}")
+```
+
+#### Enhanced API
+
+```python
+from ocr_detection import OCRDetector
+
+# Initialize detector
+detector = OCRDetector()
+
+# Quick check
+recommendation = detector.quick_check("document.pdf")
+print(f"Recommendation: {recommendation}")
+
+# Get pages needing OCR
+pages = detector.get_pages_needing_ocr("document.pdf")
+print(f"Pages needing OCR: {pages}")
+
+# Detailed analysis
+result = detector.analyze_pdf("document.pdf")
+print(f"Total pages: {result.total_pages}")
+print(f"Pages needing OCR: {result.pages_needing_ocr}")
+```
+
 ### Command Line Usage
 
 ```bash
@@ -49,32 +96,6 @@ uv run ocr-detect document.pdf --verbose --include-text
 uv run ocr-detect document.pdf --format csv --confidence-threshold 0.8
 ```
 
-### Python API Usage
-
-```python
-from ocr_detection import PDFAnalyzer, ContentAnalyzer
-
-# Analyze a PDF file
-with PDFAnalyzer("document.pdf") as analyzer:
-    # Analyze all pages
-    results = analyzer.analyze_all_pages()
-    
-    # Get summary statistics
-    summary = analyzer.get_summary(results)
-    
-    # Analyze specific page
-    page_result = analyzer.analyze_page(0)
-    
-    print(f"Page type: {page_result.page_type.value}")
-    print(f"Confidence: {page_result.confidence:.2f}")
-    print(f"Recommendation: {summary['recommended_action']}")
-
-# Advanced content analysis
-text = "Sample extracted text..."
-metrics = ContentAnalyzer.analyze_text_quality(text)
-artifacts = ContentAnalyzer.detect_ocr_artifacts(text)
-```
-
 ## Example Output
 
 ```
@@ -91,7 +112,7 @@ Page Type Distribution:
 
 Recommendation: Consider OCR for optimal text extraction
 
-   Pages with low confidence (< 0.5):
+ï¿½  Pages with low confidence (< 0.5):
   Page 7: mixed (confidence: 0.45)
 ```
 
