@@ -1,6 +1,7 @@
-# Test files
-tests/test.pdf
-tests/*.pdf
+# Test files (but allow tests/test.pdf)
+tests/sample_*.pdf
+tests/large_test.pdf
+tests/performance_test.pdf
 
 # Python-generated files
 __pycache__/
