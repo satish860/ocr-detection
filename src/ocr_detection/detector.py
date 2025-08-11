@@ -2,8 +2,10 @@
 
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
 import fitz  # PyMuPDF
 import pdfplumber
 
@@ -143,10 +145,180 @@ class PDFAnalyzer:
         
         return results
     
-    def get_summary(self, results: Optional[List[AnalysisResult]] = None) -> Dict[str, Any]:
+    def analyze_all_pages_parallel(self, max_workers: Optional[int] = None) -> List[AnalysisResult]:
+        """Analyze all pages in the PDF using parallel processing.
+        
+        Args:
+            max_workers: Maximum number of worker threads. Defaults to CPU count.
+            
+        Returns:
+            List of AnalysisResult objects, ordered by page number.
+        """
+        if not self.doc:
+            raise RuntimeError("PDF not opened. Use within context manager.")
+        
+        total_pages = len(self.doc)
+        
+        # For small PDFs, use sequential processing
+        if total_pages <= 10:
+            return self.analyze_all_pages()
+        
+        # Determine number of workers
+        if max_workers is None:
+            max_workers = min(os.cpu_count() or 4, total_pages, 8)
+        else:
+            max_workers = min(max_workers, total_pages)
+        
+        results = []
+        
+        # Create page chunks for better load distribution
+        pages_per_worker = max(1, total_pages // max_workers)
+        page_chunks = []
+        for i in range(0, total_pages, pages_per_worker):
+            chunk = list(range(i, min(i + pages_per_worker, total_pages)))
+            page_chunks.append(chunk)
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit tasks for each chunk
+            future_to_chunk = {}
+            for chunk in page_chunks:
+                future = executor.submit(self._analyze_pages_batch, chunk)
+                future_to_chunk[future] = chunk
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_chunk):
+                try:
+                    chunk_results = future.result()
+                    results.extend(chunk_results)
+                except Exception as e:
+                    # If a chunk fails, fall back to sequential processing for those pages
+                    chunk = future_to_chunk[future]
+                    for page_num in chunk:
+                        try:
+                            result = self.analyze_page(page_num)
+                            results.append(result)
+                        except Exception as page_error:
+                            # Log error but continue with other pages
+                            print(f"Error analyzing page {page_num}: {page_error}")
+        
+        # Sort results by page number to maintain order
+        results.sort(key=lambda r: r.page_number)
+        return results
+    
+    def _analyze_pages_batch(self, page_numbers: List[int]) -> List[AnalysisResult]:
+        """Analyze a batch of pages in a separate thread.
+        
+        This method creates its own PDF document instances to ensure thread safety.
+        
+        Args:
+            page_numbers: List of page numbers to analyze.
+            
+        Returns:
+            List of AnalysisResult objects for the batch.
+        """
+        results = []
+        
+        # Open separate PDF instances for thread safety
+        with fitz.open(str(self.pdf_path)) as thread_doc, \
+             pdfplumber.open(str(self.pdf_path)) as thread_plumber:
+            
+            for page_num in page_numbers:
+                # Get pages from both libraries
+                fitz_page = thread_doc[page_num]
+                plumber_page = thread_plumber.pages[page_num]
+                
+                # Extract text using both methods
+                fitz_text = fitz_page.get_text().strip()
+                plumber_text = plumber_page.extract_text() or ""
+                plumber_text = plumber_text.strip()
+                
+                # Use the longer text extraction
+                extracted_text = fitz_text if len(fitz_text) > len(plumber_text) else plumber_text
+                text_length = len(extracted_text)
+                
+                # Get page dimensions
+                page_rect = fitz_page.rect
+                page_area = page_rect.width * page_rect.height
+                
+                # Analyze images with improved background detection
+                image_info = self._analyze_images(fitz_page)
+                total_image_area = image_info["total_area"]
+                meaningful_image_area = image_info["meaningful_image_area"]
+                content_image_count = len(image_info["content_images"])
+                
+                # Calculate ratios - use meaningful images instead of total
+                text_ratio = self._calculate_text_ratio(extracted_text, page_area)
+                image_ratio = meaningful_image_area / page_area if page_area > 0 else 0
+                background_ratio = image_info["background_coverage_ratio"]
+                
+                # Get text quality metrics
+                from .analyzer import ContentAnalyzer
+                text_metrics = ContentAnalyzer.analyze_text_quality(extracted_text)
+                
+                # Classify page type and calculate confidence with enhanced logic
+                try:
+                    page_type, confidence = self._classify_page_enhanced(
+                        text_ratio, image_ratio, text_length, content_image_count, 
+                        text_metrics, background_ratio
+                    )
+                except Exception as e:
+                    # Fallback to original classification if enhanced fails
+                    page_type, confidence = self._classify_page(text_ratio, image_ratio, text_length, content_image_count)
+                
+                # Prepare detailed information
+                details = {
+                    "extracted_text_preview": extracted_text[:200] + "..." if len(extracted_text) > 200 else extracted_text,
+                    "page_dimensions": {"width": page_rect.width, "height": page_rect.height},
+                    "total_image_area": total_image_area,
+                    "meaningful_image_area": meaningful_image_area,
+                    "background_coverage_ratio": background_ratio,
+                    "content_image_count": content_image_count,
+                    "image_details": image_info["content_images"][:5],  # Show content images only
+                    "text_extraction_method": "fitz" if len(fitz_text) > len(plumber_text) else "pdfplumber",
+                    "text_quality": {
+                        "ocr_quality_score": text_metrics.ocr_quality_score,
+                        "text_density": text_metrics.text_density,
+                        "formatting_consistency": text_metrics.formatting_consistency
+                    }
+                }
+                
+                result = AnalysisResult(
+                    page_number=page_num,
+                    page_type=page_type,
+                    confidence=confidence,
+                    text_ratio=text_ratio,
+                    image_ratio=image_ratio,
+                    text_length=text_length,
+                    image_count=content_image_count,
+                    details=details
+                )
+                
+                results.append(result)
+        
+        return results
+    
+    def analyze_all_pages_auto(self, parallel: bool = True, max_workers: Optional[int] = None) -> List[AnalysisResult]:
+        """Analyze all pages with automatic method selection.
+        
+        Args:
+            parallel: If True, use parallel processing for large PDFs.
+            max_workers: Maximum number of worker threads (only used if parallel=True).
+            
+        Returns:
+            List of AnalysisResult objects, ordered by page number.
+        """
+        if parallel and self.doc and len(self.doc) > 10:
+            return self.analyze_all_pages_parallel(max_workers)
+        else:
+            return self.analyze_all_pages()
+    
+    def get_summary(self, results: Optional[List[AnalysisResult]] = None, parallel: bool = False) -> Dict[str, Any]:
         """Get a summary of the analysis results."""
         if results is None:
-            results = self.analyze_all_pages()
+            if parallel:
+                results = self.analyze_all_pages_parallel()
+            else:
+                results = self.analyze_all_pages()
         
         total_pages = len(results)
         type_counts = {}

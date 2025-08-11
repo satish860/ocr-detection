@@ -17,19 +17,23 @@ class OCRStatus(Enum):
 class OCRDetection:
     """Simple OCR detection interface."""
     
-    def __init__(self, confidence_threshold: float = 0.5):
+    def __init__(self, confidence_threshold: float = 0.5, parallel: bool = True):
         """Initialize OCR detection.
         
         Args:
             confidence_threshold: Minimum confidence for determining OCR need (0-1)
+            parallel: Enable parallel processing for faster analysis
         """
         self.confidence_threshold = confidence_threshold
+        self.parallel = parallel
     
-    def detect(self, document: Union[str, Path]) -> Dict[str, Any]:
+    def detect(self, document: Union[str, Path], parallel: bool = None, max_workers: int = None) -> Dict[str, Any]:
         """Detect which pages need OCR processing.
         
         Args:
             document: Path to PDF document
+            parallel: Override default parallel setting (optional)
+            max_workers: Number of worker threads for parallel processing (optional)
             
         Returns:
             Dictionary with:
@@ -41,11 +45,19 @@ class OCRDetection:
         if not document.exists():
             raise FileNotFoundError(f"Document not found: {document}")
         
+        # Use instance setting if parallel not specified
+        if parallel is None:
+            parallel = self.parallel
+        
         pages_needing_ocr = []
         total_pages = 0
         
         with PDFAnalyzer(document) as analyzer:
-            results = analyzer.analyze_all_pages()
+            # Use parallel or sequential based on settings
+            if parallel:
+                results = analyzer.analyze_all_pages_parallel(max_workers=max_workers)
+            else:
+                results = analyzer.analyze_all_pages()
             total_pages = len(results)
             
             for result in results:
@@ -110,14 +122,15 @@ class OCRDetection:
 
 
 # Convenience function for one-line usage
-def detect_ocr(document: Union[str, Path]) -> Dict[str, Any]:
+def detect_ocr(document: Union[str, Path], parallel: bool = True) -> Dict[str, Any]:
     """Quick function to detect OCR requirements.
     
     Args:
         document: Path to PDF document
+        parallel: Use parallel processing for faster analysis
         
     Returns:
         Dictionary with status and pages needing OCR
     """
-    detector = OCRDetection()
+    detector = OCRDetection(parallel=parallel)
     return detector.detect(document)

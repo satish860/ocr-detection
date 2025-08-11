@@ -3,6 +3,7 @@
 import json
 import csv
 import sys
+import time
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -22,8 +23,10 @@ from .analyzer import ContentAnalyzer
 @click.option('--include-text', is_flag=True, help='Include extracted text preview in output')
 @click.option('--confidence-threshold', type=float, default=0.5,
               help='Minimum confidence threshold for recommendations (default: 0.5)')
+@click.option('--parallel', is_flag=True, help='Use parallel processing for faster analysis')
+@click.option('--workers', type=int, help='Number of worker threads for parallel processing')
 def main(pdf_path: Path, output: Path, format: str, page: int, verbose: bool, 
-         include_text: bool, confidence_threshold: float):
+         include_text: bool, confidence_threshold: float, parallel: bool, workers: int):
     """Analyze PDF pages to detect text vs scanned content.
     
     This tool analyzes PDF files to determine whether pages contain extractable
@@ -38,6 +41,10 @@ def main(pdf_path: Path, output: Path, format: str, page: int, verbose: bool,
         ocr-detect document.pdf --page 0 --verbose
         
         ocr-detect document.pdf --format csv --confidence-threshold 0.8
+        
+        ocr-detect large-document.pdf --parallel --workers 4
+        
+        ocr-detect document.pdf --parallel --verbose
     """
     
     try:
@@ -47,8 +54,31 @@ def main(pdf_path: Path, output: Path, format: str, page: int, verbose: bool,
                 results = [analyzer.analyze_page(page)]
                 click.echo(f"Analyzing page {page} of {pdf_path.name}...")
             else:
-                results = analyzer.analyze_all_pages()
-                click.echo(f"Analyzing {len(results)} pages of {pdf_path.name}...")
+                # Count total pages first
+                total_pages = len(analyzer.doc)
+                
+                # Show analysis method
+                if parallel and total_pages > 10:
+                    method = f"parallel ({workers or 'auto'} workers)"
+                else:
+                    method = "sequential"
+                    
+                click.echo(f"Analyzing {total_pages} pages of {pdf_path.name} using {method} processing...")
+                
+                # Start timing if verbose
+                start_time = time.time() if verbose else None
+                
+                # Perform analysis
+                if parallel and total_pages > 10:
+                    results = analyzer.analyze_all_pages_parallel(max_workers=workers)
+                else:
+                    results = analyzer.analyze_all_pages()
+                
+                # Show timing if verbose
+                if verbose and start_time:
+                    elapsed = time.time() - start_time
+                    pages_per_second = total_pages / elapsed if elapsed > 0 else 0
+                    click.echo(f"Analysis completed in {elapsed:.2f} seconds ({pages_per_second:.1f} pages/sec)")
             
             # Get summary
             summary = analyzer.get_summary(results)
