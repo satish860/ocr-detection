@@ -6,7 +6,6 @@ from typing import List, Optional, Dict, Any
 from pathlib import Path
 import fitz  # PyMuPDF
 import pdfplumber
-import io
 
 
 class PageType(Enum):
@@ -82,7 +81,6 @@ class PDFAnalyzer:
         
         # Analyze images with improved background detection
         image_info = self._analyze_images(fitz_page)
-        image_count = len(image_info["images"])
         total_image_area = image_info["total_area"]
         meaningful_image_area = image_info["meaningful_image_area"]
         content_image_count = len(image_info["content_images"])
