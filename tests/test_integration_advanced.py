@@ -60,7 +60,7 @@ def test_large_pdf_parallel():
             sequential_results = analyzer.analyze_all_pages()
             sequential_time = time.time() - start_time
             print(
-                f"Sequential: {sequential_time:.3f}s ({total_pages/sequential_time:.1f} pages/sec)"
+                f"Sequential: {sequential_time:.3f}s ({total_pages / sequential_time:.1f} pages/sec)"
             )
 
             # Test parallel processing
@@ -68,14 +68,14 @@ def test_large_pdf_parallel():
             start_time = time.time()
             parallel_results = analyzer.analyze_all_pages_parallel(max_workers=4)
             parallel_time = time.time() - start_time
-            print(f"Parallel: {parallel_time:.3f}s ({total_pages/parallel_time:.1f} pages/sec)")
+            print(f"Parallel: {parallel_time:.3f}s ({total_pages / parallel_time:.1f} pages/sec)")
 
             # Test auto method
             print("Testing auto method selection...")
             start_time = time.time()
             auto_results = analyzer.analyze_all_pages_auto(parallel=True, max_workers=2)
             auto_time = time.time() - start_time
-            print(f"Auto: {auto_time:.3f}s ({total_pages/auto_time:.1f} pages/sec)")
+            print(f"Auto: {auto_time:.3f}s ({total_pages / auto_time:.1f} pages/sec)")
 
             # Verify all methods return same number of results
             assert len(sequential_results) == len(parallel_results) == len(auto_results)
