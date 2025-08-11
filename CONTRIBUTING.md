@@ -73,11 +73,20 @@ We are committed to providing a welcoming and inclusive environment for all cont
 # Install UV if you haven't already
 # See: https://github.com/astral-sh/uv
 
-# Install dependencies
-uv sync
+# Install dependencies and dev tools
+uv sync --dev
+
+# Install pre-commit hooks for automatic code quality checks
+uv run pre-commit install
 
 # Verify installation
 uv run ocr-detect --version
+
+# (Optional) Run initial lint and format checks
+make lint
+# Or on Windows without make:
+uv run ruff check src/ tests/
+uv run mypy src/
 ```
 
 ### Project Structure
@@ -140,13 +149,24 @@ uv run python test_basic.py
    - Add or update tests as needed
    - Update documentation if necessary
 
-3. **Test your changes**:
+3. **Lint and test your changes**:
    ```bash
+   # Run linting and formatting
+   make lint-fix  # Auto-fix issues
+   make format    # Format code
+   
+   # Or manually:
+   uv run ruff check src/ tests/ --fix
+   uv run black src/ tests/
+   
    # Run tests
    uv run pytest tests/
    
    # Test CLI functionality
    uv run ocr-detect sample.pdf --verbose
+   
+   # Run all quality checks
+   make quality
    ```
 
 4. **Commit your changes** (see [Commit Message Guidelines](#commit-message-guidelines))
@@ -172,7 +192,10 @@ uv run python test_basic.py
 ### Pull Request Checklist
 
 - [ ] Tests pass locally (`uv run pytest tests/`)
-- [ ] Code follows the project's style guidelines
+- [ ] Code passes linting (`uv run ruff check src/ tests/`)
+- [ ] Code is properly formatted (`uv run black src/ tests/ --check`)
+- [ ] Type hints pass mypy (`uv run mypy src/`)
+- [ ] Pre-commit hooks pass (`uv run pre-commit run --all-files`)
 - [ ] Documentation is updated if needed
 - [ ] Commit messages are clear and follow guidelines
 - [ ] PR description clearly explains the changes
@@ -182,11 +205,30 @@ uv run python test_basic.py
 
 ### Python Code Style
 
-- Follow PEP 8 conventions
+- Follow PEP 8 conventions (enforced by Ruff)
 - Use meaningful variable and function names
-- Add type hints where appropriate
+- Add type hints for all functions (enforced by MyPy)
 - Keep functions focused and concise
 - Document complex logic with comments
+- Maximum line length: 100 characters
+- Use Black and Ruff for automatic formatting
+
+#### Linting Tools
+
+We use the following tools to maintain code quality:
+
+- **Ruff**: Fast Python linter for style and error checking
+- **Black**: Code formatter for consistent style
+- **MyPy**: Static type checker
+- **Bandit**: Security vulnerability scanner
+- **Pre-commit**: Git hooks for automatic checks
+
+Run all checks with:
+```bash
+make lint        # Check for issues
+make lint-fix    # Auto-fix issues
+make format      # Format code
+```
 
 ### Key Conventions
 

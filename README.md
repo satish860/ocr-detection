@@ -229,13 +229,33 @@ The library uses multiple detection methods:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## CI/CD
+## CI/CD and Code Quality
 
 This project uses GitHub Actions for continuous integration and deployment:
 
 - **Automated Testing**: Tests run on every commit across multiple OS (Ubuntu, Windows, macOS)
+- **Code Quality Enforcement**: Automatic linting with Ruff, formatting with Black, and type checking with MyPy
 - **Automatic PyPI Deployment**: New releases are automatically published to PyPI
-- **Code Quality Checks**: Linting, type checking, and coverage reporting
+- **Pre-commit Hooks**: Local code quality checks before commits
+- **Coverage Reporting**: Test coverage analysis and reporting
+
+### Local Development
+
+```bash
+# Install dev dependencies
+uv sync --dev
+
+# Set up pre-commit hooks
+uv run pre-commit install
+
+# Run linting and formatting
+make lint-fix  # Auto-fix issues
+make format    # Format code
+
+# Run tests
+make test      # Run all tests
+make test-cov  # Run with coverage
+```
 
 See [.github/workflows/README.md](.github/workflows/README.md) for details on the CI/CD setup.
 
