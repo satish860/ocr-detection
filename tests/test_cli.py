@@ -76,11 +76,11 @@ class TestCLI:
     def test_cli_basic_analysis(self, mock_analyzer_class, mock_analysis_results, mock_summary):
         """Test basic CLI analysis functionality."""
         # Setup mocks
-        mock_analyzer = Mock()
+        mock_analyzer = MagicMock()
         mock_analyzer.analyze_all_pages.return_value = mock_analysis_results
         mock_analyzer.get_summary.return_value = mock_summary
-        mock_analyzer.configure_mock(**{'__enter__.return_value': mock_analyzer})
-        mock_analyzer.configure_mock(**{'__exit__.return_value': None})
+        mock_analyzer.__enter__.return_value = mock_analyzer
+        mock_analyzer.__exit__.return_value = None
         mock_analyzer_class.return_value = mock_analyzer
         
         runner = CliRunner()
@@ -100,11 +100,11 @@ class TestCLI:
     def test_cli_json_output(self, mock_analyzer_class, mock_analysis_results, mock_summary):
         """Test CLI JSON output format."""
         # Setup mocks
-        mock_analyzer = Mock()
+        mock_analyzer = MagicMock()
         mock_analyzer.analyze_all_pages.return_value = mock_analysis_results
         mock_analyzer.get_summary.return_value = mock_summary
-        mock_analyzer.configure_mock(**{'__enter__.return_value': mock_analyzer})
-        mock_analyzer.configure_mock(**{'__exit__.return_value': None})
+        mock_analyzer.__enter__.return_value = mock_analyzer
+        mock_analyzer.__exit__.return_value = None
         mock_analyzer_class.return_value = mock_analyzer
         
         runner = CliRunner()
@@ -144,11 +144,11 @@ class TestCLI:
     def test_cli_verbose_output(self, mock_analyzer_class, mock_analysis_results, mock_summary):
         """Test CLI verbose output."""
         # Setup mocks
-        mock_analyzer = Mock()
+        mock_analyzer = MagicMock()
         mock_analyzer.analyze_all_pages.return_value = mock_analysis_results
         mock_analyzer.get_summary.return_value = mock_summary
-        mock_analyzer.configure_mock(**{'__enter__.return_value': mock_analyzer})
-        mock_analyzer.configure_mock(**{'__exit__.return_value': None})
+        mock_analyzer.__enter__.return_value = mock_analyzer
+        mock_analyzer.__exit__.return_value = None
         mock_analyzer_class.return_value = mock_analyzer
         
         runner = CliRunner()
@@ -167,11 +167,11 @@ class TestCLI:
     def test_cli_csv_output_file(self, mock_analyzer_class, mock_analysis_results, mock_summary):
         """Test CLI CSV output to file."""
         # Setup mocks
-        mock_analyzer = Mock()
+        mock_analyzer = MagicMock()
         mock_analyzer.analyze_all_pages.return_value = mock_analysis_results
         mock_analyzer.get_summary.return_value = mock_summary
-        mock_analyzer.configure_mock(**{'__enter__.return_value': mock_analyzer})
-        mock_analyzer.configure_mock(**{'__exit__.return_value': None})
+        mock_analyzer.__enter__.return_value = mock_analyzer
+        mock_analyzer.__exit__.return_value = None
         mock_analyzer_class.return_value = mock_analyzer
         
         runner = CliRunner()

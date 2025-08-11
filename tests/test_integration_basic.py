@@ -33,13 +33,13 @@ def test_basic_functionality():
     """Test basic parallel processing functionality with a small PDF."""
     print("=== Basic Integration Test ===")
     
-    # Use a simple, reliable PDF
-    pdf_url = "https://www.w3.org/WAI/WCAG21/working-examples/pdf-table/table.pdf"
+    # Use the provided PDF file
+    pdf_url = "https://files.edgestore.dev/kv3hoirymwcmuuoj/publicFiles/_public/e168fb66-4c8b-4ddb-a807-414cb0ca72fd.pdf"
     pdf_path = download_pdf(pdf_url, "basic_test.pdf")
     
     if not pdf_path:
         print("Failed to download test PDF")
-        return False
+        assert False, "Failed to download test PDF"
     
     try:
         # Test that our classes work with real PDFs
@@ -75,27 +75,26 @@ def test_basic_functionality():
         assert result == result2
         print("OCRDetection class works correctly")
         
-        return True
-        
     except Exception as e:
         print(f"Test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        assert False, f"Test failed with exception: {e}"
     finally:
-        pdf_path.unlink(missing_ok=True)
+        if pdf_path:
+            pdf_path.unlink(missing_ok=True)
 
 def test_performance_comparison():
     """Test performance difference between sequential and parallel."""
     print("\n=== Performance Comparison Test ===")
     
-    # Create a synthetic test - run the same small PDF multiple times
-    pdf_url = "https://www.w3.org/WAI/WCAG21/working-examples/pdf-table/table.pdf"
+    # Use the provided PDF file
+    pdf_url = "https://files.edgestore.dev/kv3hoirymwcmuuoj/publicFiles/_public/e168fb66-4c8b-4ddb-a807-414cb0ca72fd.pdf"
     pdf_path = download_pdf(pdf_url, "performance_test.pdf")
     
     if not pdf_path:
         print("Failed to download test PDF")
-        return False
+        assert False, "Failed to download test PDF"
     
     try:
         # Test multiple runs to see timing differences
@@ -126,13 +125,18 @@ def test_performance_comparison():
         print(f"Average parallel time: {avg_par:.3f}s")
         print(f"Times collected over {len(sequential_times)} runs")
         
-        return True
+        # Assert that we got valid timing results
+        assert len(sequential_times) == 3
+        assert len(parallel_times) == 3
+        assert all(t > 0 for t in sequential_times)
+        assert all(t > 0 for t in parallel_times)
         
     except Exception as e:
         print(f"Performance test failed: {e}")
-        return False
+        assert False, f"Performance test failed with exception: {e}"
     finally:
-        pdf_path.unlink(missing_ok=True)
+        if pdf_path:
+            pdf_path.unlink(missing_ok=True)
 
 def main():
     """Run basic integration tests."""

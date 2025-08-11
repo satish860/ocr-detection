@@ -46,6 +46,12 @@ jobs:
       run: |
         uv sync --dev
     
+    - name: Create test PDF files
+      run: |
+        cd tests
+        python create_test_pdf.py
+        cd ..
+    
     - name: Lint with ruff (optional)
       continue-on-error: true
       run: |

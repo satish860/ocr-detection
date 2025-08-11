@@ -34,22 +34,13 @@ def test_large_pdf_parallel():
     """Test parallel processing with a larger PDF."""
     print("=== Large PDF Parallel Processing Test ===")
     
-    # Try to find a larger PDF for testing
-    test_urls = [
-        "https://www.learningcontainer.com/wp-content/uploads/2019/09/sample-pdf-file.pdf",
-        "https://www.africau.edu/images/default/sample.pdf",
-        "https://www.orimi.com/pdf-test.pdf"
-    ]
-    
-    pdf_path = None
-    for url in test_urls:
-        pdf_path = download_pdf(url, "large_test.pdf")
-        if pdf_path:
-            break
+    # Use the provided PDF file
+    pdf_url = "https://files.edgestore.dev/kv3hoirymwcmuuoj/publicFiles/_public/e168fb66-4c8b-4ddb-a807-414cb0ca72fd.pdf"
+    pdf_path = download_pdf(pdf_url, "large_test.pdf")
     
     if not pdf_path:
-        print("Could not download any test PDF")
-        return False
+        print("Could not download test PDF")
+        assert False, "Could not download test PDF"
     
     try:
         with PDFAnalyzer(pdf_path) as analyzer:
@@ -101,27 +92,26 @@ def test_large_pdf_parallel():
                     print(f"Workers={workers}: {worker_time:.3f}s")
                     assert len(worker_results) == total_pages
             
-            return True
-            
     except Exception as e:
         print(f"Large PDF test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        assert False, f"Large PDF test failed: {e}"
     finally:
-        pdf_path.unlink(missing_ok=True)
+        if pdf_path:
+            pdf_path.unlink(missing_ok=True)
 
 def test_cli_integration():
     """Test CLI with parallel processing options."""
     print("\n=== CLI Integration Test ===")
     
-    # Download a test PDF
-    pdf_url = "https://www.learningcontainer.com/wp-content/uploads/2019/09/sample-pdf-file.pdf"
+    # Use the provided PDF file
+    pdf_url = "https://files.edgestore.dev/kv3hoirymwcmuuoj/publicFiles/_public/e168fb66-4c8b-4ddb-a807-414cb0ca72fd.pdf"
     pdf_path = download_pdf(pdf_url, "cli_test.pdf")
     
     if not pdf_path:
         print("Could not download test PDF for CLI")
-        return False
+        assert False, "Could not download test PDF for CLI"
     
     try:
         # Test basic CLI
@@ -138,7 +128,7 @@ def test_cli_integration():
             print("Output preview:", result.stdout[:150] + "..." if len(result.stdout) > 150 else result.stdout)
         else:
             print(f"Basic CLI: FAILED - {result.stderr}")
-            return False
+            assert False, f"Basic CLI failed: {result.stderr}"
         
         # Test parallel CLI
         print("Testing parallel CLI...")
@@ -154,7 +144,7 @@ def test_cli_integration():
             print("Output preview:", result.stdout[:150] + "..." if len(result.stdout) > 150 else result.stdout)
         else:
             print(f"Parallel CLI: FAILED - {result.stderr}")
-            return False
+            assert False, f"Parallel CLI failed: {result.stderr}"
         
         # Test JSON output with parallel
         print("Testing JSON output with parallel...")
@@ -174,15 +164,14 @@ def test_cli_integration():
             json_output.unlink()
         else:
             print(f"JSON output test: FAILED - {result.stderr}")
-            return False
-        
-        return True
+            assert False, f"JSON output test failed: {result.stderr}"
         
     except Exception as e:
         print(f"CLI integration test failed: {e}")
-        return False
+        assert False, f"CLI integration test failed: {e}"
     finally:
-        pdf_path.unlink(missing_ok=True)
+        if pdf_path:
+            pdf_path.unlink(missing_ok=True)
 
 def test_error_handling():
     """Test error handling in parallel processing."""
@@ -194,12 +183,12 @@ def test_error_handling():
             detector = OCRDetection(parallel=True)
             result = detector.detect("nonexistent.pdf")
             print("ERROR: Should have raised FileNotFoundError")
-            return False
+            assert False, "Should have raised FileNotFoundError"
         except FileNotFoundError:
             print("Correctly handled non-existent file")
         
         # Test with invalid worker count (should work but adjust)
-        pdf_url = "https://www.w3.org/WAI/WCAG21/working-examples/pdf-table/table.pdf"
+        pdf_url = "https://files.edgestore.dev/kv3hoirymwcmuuoj/publicFiles/_public/e168fb66-4c8b-4ddb-a807-414cb0ca72fd.pdf"
         pdf_path = download_pdf(pdf_url, "error_test.pdf")
         
         if pdf_path:
@@ -207,18 +196,18 @@ def test_error_handling():
                 # Test with excessive worker count
                 results = analyzer.analyze_all_pages_parallel(max_workers=1000)
                 print(f"Handled excessive worker count, got {len(results)} results")
+                assert len(results) > 0, "Should have gotten results"
                 
                 # Test with 0 workers (should use default)
                 results = analyzer.analyze_all_pages_parallel(max_workers=0)
                 print(f"Handled 0 workers, got {len(results)} results")
+                assert len(results) > 0, "Should have gotten results with default workers"
             
             pdf_path.unlink()
         
-        return True
-        
     except Exception as e:
         print(f"Error handling test failed: {e}")
-        return False
+        assert False, f"Error handling test failed: {e}"
 
 def main():
     """Run advanced integration tests."""

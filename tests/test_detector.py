@@ -76,7 +76,7 @@ class TestPDFAnalyzer:
         mock_exists.return_value = True
         
         # Mock fitz document and page
-        self.mock_fitz_doc = Mock()
+        self.mock_fitz_doc = MagicMock()
         self.mock_fitz_page = Mock()
         self.mock_fitz_page.get_text.return_value = "Sample extracted text"
         self.mock_fitz_page.rect = Mock()
@@ -84,8 +84,8 @@ class TestPDFAnalyzer:
         self.mock_fitz_page.rect.height = 792
         self.mock_fitz_page.get_images.return_value = []
         
-        self.mock_fitz_doc.configure_mock(**{'__len__.return_value': 1})
-        self.mock_fitz_doc.configure_mock(**{'__getitem__.return_value': self.mock_fitz_page})
+        self.mock_fitz_doc.__len__.return_value = 1
+        self.mock_fitz_doc.__getitem__.return_value = self.mock_fitz_page
         mock_fitz.open.return_value = self.mock_fitz_doc
         
         # Mock pdfplumber document and page
@@ -179,8 +179,8 @@ class TestParallelProcessing:
         def get_item(index):
             return self.mock_pages[index]
         
-        self.mock_fitz_doc.configure_mock(**{'__len__.return_value': 20})
-        self.mock_fitz_doc.configure_mock(**{'__getitem__.side_effect': get_item})
+        self.mock_fitz_doc.__len__.return_value = 20
+        self.mock_fitz_doc.__getitem__.side_effect = get_item
         mock_fitz.open.return_value = self.mock_fitz_doc
         
         # Mock pdfplumber
@@ -199,7 +199,7 @@ class TestParallelProcessing:
     def test_parallel_analysis_small_pdf(self):
         """Test that small PDFs use sequential processing."""
         # Mock a document with only 5 pages
-        self.mock_fitz_doc.configure_mock(**{'__len__.return_value': 5})
+        self.mock_fitz_doc.__len__.return_value = 5
         
         with self.analyzer:
             results = self.analyzer.analyze_all_pages_parallel()

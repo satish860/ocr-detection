@@ -32,6 +32,12 @@ jobs:
       run: |
         uv sync --dev
     
+    - name: Create test PDF files
+      run: |
+        cd tests
+        uv run python create_test_pdf.py
+        cd ..
+    
     - name: Run Ruff linter
       run: |
         uv run ruff check src/ tests/ --output-format=github
@@ -71,6 +77,12 @@ jobs:
     - name: Install dependencies
       run: |
         uv sync --dev
+    
+    - name: Create test PDF files
+      run: |
+        cd tests
+        uv run python create_test_pdf.py
+        cd ..
     
     - name: Run tests with pytest
       run: |
