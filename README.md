@@ -227,8 +227,27 @@ The library uses multiple detection methods:
 
 ## License
 
-[Add your license information here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
-[Add contribution guidelines here]
+We welcome contributions to the OCR Detection Library! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
+
+- Code of Conduct
+- How to submit bug reports and feature requests
+- Development setup and workflow
+- Pull request process
+- Code style and testing requirements
+
+Quick start for contributors:
+```bash
+# Fork and clone the repository
+git clone https://github.com/yourusername/ocr-detection.git
+cd ocr-detection
+
+# Set up development environment
+uv sync
+
+# Run tests before submitting PR
+uv run pytest tests/
+```
