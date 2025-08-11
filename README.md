@@ -229,6 +229,16 @@ The library uses multiple detection methods:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## CI/CD
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- **Automated Testing**: Tests run on every commit across multiple OS (Ubuntu, Windows, macOS)
+- **Automatic PyPI Deployment**: New releases are automatically published to PyPI
+- **Code Quality Checks**: Linting, type checking, and coverage reporting
+
+See [.github/workflows/README.md](.github/workflows/README.md) for details on the CI/CD setup.
+
 ## Contributing
 
 We welcome contributions to the OCR Detection Library! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:

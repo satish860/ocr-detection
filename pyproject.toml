@@ -3,15 +3,36 @@ name = "ocr-detection"
 version = "0.1.0"
 description = "A Python library to detect whether PDF pages contain extractable text or are scanned images requiring OCR"
 readme = "README.md"
+license = {text = "MIT"}
 authors = [
     { name = "satish", email = "satish860@gmail.com" }
 ]
+maintainers = [
+    { name = "satish", email = "satish860@gmail.com" }
+]
 requires-python = ">=3.13"
+keywords = ["pdf", "ocr", "text-extraction", "document-processing", "pdf-analysis"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: General",
+    "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+]
 dependencies = [
     "pymupdf>=1.23.0",
     "pdfplumber>=0.10.0",
     "click>=8.1.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/satish860/ocr-detection"
+Repository = "https://github.com/satish860/ocr-detection"
+Issues = "https://github.com/satish860/ocr-detection/issues"
+Documentation = "https://github.com/satish860/ocr-detection#readme"
 
 [project.scripts]
 ocr-detect = "ocr_detection.cli:main"
@@ -24,4 +45,5 @@ build-backend = "uv_build"
 dev = [
     "pytest>=8.4.1",
     "requests>=2.32.4",
+    "twine>=6.1.0",
 ]

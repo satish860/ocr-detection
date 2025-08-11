@@ -1,0 +1,87 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master, main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches: [ master, main ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.13"]
+        include:
+          # Test on minimum supported Python version on Ubuntu
+          - os: ubuntu-latest
+            python-version: "3.10"
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+    
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+    
+    - name: Lint with ruff (optional)
+      continue-on-error: true
+      run: |
+        uv add --dev ruff
+        uv run ruff check src/
+    
+    - name: Type check with mypy (optional)
+      continue-on-error: true
+      run: |
+        uv add --dev mypy
+        uv run mypy src/ --ignore-missing-imports
+    
+    - name: Run unit tests
+      run: |
+        uv run pytest tests/ -v --tb=short -m "not integration"
+    
+    - name: Run integration tests
+      run: |
+        uv run pytest tests/test_integration_*.py -v --tb=short
+    
+    - name: Test CLI functionality
+      run: |
+        uv run ocr-detect --help
+        uv run ocr-detect --version || echo "Version command not implemented"
+    
+    - name: Run coverage report
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+      run: |
+        uv add --dev pytest-cov
+        uv run pytest tests/ --cov=ocr_detection --cov-report=term-missing --cov-report=html --cov-report=xml
+    
+    - name: Upload coverage reports
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: |
+          htmlcov/
+          coverage.xml
