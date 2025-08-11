@@ -1,4 +1,3 @@
-
 """Test the simple OCR detection API."""
 
 import sys
@@ -13,6 +12,7 @@ print("=" * 50)
 # Import the library
 try:
     from ocr_detection import OCRDetection, detect_ocr
+
     print("[OK] Successfully imported OCRDetection API")
 except ImportError as e:
     print(f"[FAIL] Import failed: {e}")
@@ -38,12 +38,7 @@ except Exception as e:
     print(f"[FAIL] Unexpected error: {e}")
 
 # Test 3: If test PDF exists, analyze it
-test_pdfs = [
-    Path("sample.pdf"),
-    Path("test.pdf"),
-    Path("document.pdf"),
-    Path("example.pdf")
-]
+test_pdfs = [Path("sample.pdf"), Path("test.pdf"), Path("document.pdf"), Path("example.pdf")]
 
 pdf_to_test = None
 for pdf in test_pdfs:
@@ -53,23 +48,27 @@ for pdf in test_pdfs:
 
 if pdf_to_test:
     print(f"\n3. Testing with actual PDF: {pdf_to_test}")
-    
+
     # Test using class
     print("\n   Using OCRDetection class:")
     try:
         result = detector.detect(pdf_to_test)
         print(f"   [OK] Status: {result['status']}")
         print(f"   [OK] Pages: {result['pages']}")
-        
+
         # Validate result structure
-        assert 'status' in result, "Result missing 'status' field"
-        assert 'pages' in result, "Result missing 'pages' field"
-        assert result['status'] in ['true', 'false', 'partial'], f"Invalid status: {result['status']}"
-        assert isinstance(result['pages'], list), "Pages should be a list"
+        assert "status" in result, "Result missing 'status' field"
+        assert "pages" in result, "Result missing 'pages' field"
+        assert result["status"] in [
+            "true",
+            "false",
+            "partial",
+        ], f"Invalid status: {result['status']}"
+        assert isinstance(result["pages"], list), "Pages should be a list"
         print("   [OK] Result structure is valid")
     except Exception as e:
         print(f"   [FAIL] Error: {e}")
-    
+
     # Test using convenience function
     print("\n   Using detect_ocr function:")
     try:
@@ -78,7 +77,7 @@ if pdf_to_test:
         print(f"   [OK] Pages: {result['pages']}")
     except Exception as e:
         print(f"   [FAIL] Error: {e}")
-    
+
     # Test with different confidence threshold
     print("\n   Using custom confidence threshold:")
     try:

@@ -1,7 +1,8 @@
 """Pytest configuration and fixtures."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 @pytest.fixture(scope="session")
@@ -9,7 +10,7 @@ def test_pdf_file():
     """Provide path to the committed test PDF file."""
     tests_dir = Path(__file__).parent
     test_pdf = tests_dir / "test.pdf"
-    
+
     if test_pdf.exists():
         yield test_pdf
     else:

@@ -1,12 +1,12 @@
 """Basic functionality tests that don't require PDF files."""
 
-import pytest
-from ocr_detection import ContentAnalyzer, PageType, AnalysisResult
+from ocr_detection import AnalysisResult, ContentAnalyzer, PageType
 
 
 def test_imports():
     """Test that all main components can be imported."""
-    from ocr_detection import PDFAnalyzer, ContentAnalyzer, PageType, AnalysisResult
+    from ocr_detection import AnalysisResult, ContentAnalyzer, PageType, PDFAnalyzer
+
     assert PDFAnalyzer is not None
     assert ContentAnalyzer is not None
     assert PageType is not None
@@ -26,7 +26,7 @@ def test_content_analyzer_basic():
     # Test with regular text
     text = "This is a normal sentence with some words and numbers 123."
     metrics = ContentAnalyzer.analyze_text_quality(text)
-    
+
     assert metrics.char_count > 0
     assert metrics.word_count > 0
     assert metrics.avg_word_length > 0
@@ -39,7 +39,7 @@ def test_ocr_artifact_detection():
     # Test with clean text
     clean_text = "This is clean readable text without any OCR issues."
     artifacts = ContentAnalyzer.detect_ocr_artifacts(clean_text)
-    
+
     assert isinstance(artifacts, dict)
     assert "artifacts_found" in artifacts
     assert "confidence" in artifacts
@@ -57,9 +57,9 @@ def test_analysis_result_creation():
         image_ratio=0.1,
         text_length=500,
         image_count=2,
-        details={"test": "data"}
+        details={"test": "data"},
     )
-    
+
     assert result.page_number == 0
     assert result.page_type == PageType.TEXT
     assert result.confidence == 0.85
@@ -80,13 +80,13 @@ def test_structured_content_detection():
     - Another bullet
     TITLE: Some title
     """
-    
-    # Unstructured text  
+
+    # Unstructured text
     unstructured = "Just a plain paragraph of text without any special formatting or structure."
-    
+
     structured_metrics = ContentAnalyzer.analyze_text_quality(structured)
     unstructured_metrics = ContentAnalyzer.analyze_text_quality(unstructured)
-    
+
     # Note: The exact results may vary, but we can test the function doesn't crash
     assert isinstance(structured_metrics.has_structured_content, bool)
     assert isinstance(unstructured_metrics.has_structured_content, bool)
