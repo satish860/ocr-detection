@@ -10,7 +10,7 @@ from typing import Any
 import fitz  # PyMuPDF
 import pdfplumber
 
-from .analyzer import TextMetrics
+from ._analyzer import TextMetrics
 
 
 class PageType(Enum):
@@ -100,7 +100,7 @@ class PDFAnalyzer:
         background_ratio = image_info["background_coverage_ratio"]
 
         # Get text quality metrics
-        from .analyzer import ContentAnalyzer
+        from ._analyzer import ContentAnalyzer
 
         text_metrics = ContentAnalyzer.analyze_text_quality(extracted_text)
 
@@ -271,7 +271,7 @@ class PDFAnalyzer:
                 background_ratio = image_info["background_coverage_ratio"]
 
                 # Get text quality metrics
-                from .analyzer import ContentAnalyzer
+                from ._analyzer import ContentAnalyzer
 
                 text_metrics = ContentAnalyzer.analyze_text_quality(extracted_text)
 

@@ -4,7 +4,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from .detector import AnalysisResult, PageType, PDFAnalyzer
+from ._detector import AnalysisResult, PageType, PDFAnalyzer
 
 
 class OCRStatus(Enum):
