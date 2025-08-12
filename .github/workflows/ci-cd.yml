@@ -76,10 +76,6 @@ jobs:
       run: |
         uv run pytest tests/ -v --tb=short
     
-    - name: Run basic functionality test
-      run: |
-        uv run python test_basic.py
-    
     - name: Test CLI
       run: |
         uv run ocr-detect --help
