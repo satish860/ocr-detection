@@ -64,7 +64,7 @@ jobs:
     
     - name: Run integration tests
       run: |
-        uv run pytest tests/test_integration_*.py -v --tb=short
+        uv run pytest tests/test_integration*.py -v --tb=short
     
     - name: Test CLI functionality
       run: |
