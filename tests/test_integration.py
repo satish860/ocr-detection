@@ -1,4 +1,3 @@
-
 """Integration tests for the simple OCR detection API."""
 
 from pathlib import Path

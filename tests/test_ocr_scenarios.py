@@ -11,7 +11,9 @@ TEST_DATA_DIR = Path(__file__).parent / "test_data"
 
 # Test PDFs with known characteristics
 PDF_ALL_PAGES_NEED_OCR = "2e1b63c5-761d-48b9-b3b5-f263c3db4e30.pdf"  # 9 pages - all need OCR
-PDF_THRESHOLD_SENSITIVE = "433687b4-cd9e-4b25-b654-8b16df84ca7f.pdf"   # 24 pages - threshold sensitive
+PDF_THRESHOLD_SENSITIVE = (
+    "433687b4-cd9e-4b25-b654-8b16df84ca7f.pdf"  # 24 pages - threshold sensitive
+)
 
 
 class TestOCRScenarios:
@@ -34,9 +36,13 @@ class TestOCRScenarios:
 
         # Pages should be 1 through 9
         expected_pages = list(range(1, 10))
-        assert result["pages"] == expected_pages, f"Expected pages {expected_pages}, got {result['pages']}"
+        assert result["pages"] == expected_pages, (
+            f"Expected pages {expected_pages}, got {result['pages']}"
+        )
 
-        print(f"\n✓ {PDF_ALL_PAGES_NEED_OCR}: Correctly identified as fully scanned (all 9 pages need OCR)")
+        print(
+            f"\n✓ {PDF_ALL_PAGES_NEED_OCR}: Correctly identified as fully scanned (all 9 pages need OCR)"
+        )
 
     def test_pdf_threshold_sensitive(self):
         """Test PDF that's sensitive to confidence thresholds."""
@@ -49,13 +55,16 @@ class TestOCRScenarios:
         result = detect_ocr(str(pdf_path))
 
         # This PDF should have status 'false' with default threshold
-        assert result["status"] == "false", f"Expected status 'false' with default threshold, got {result['status']}"
+        assert result["status"] == "false", (
+            f"Expected status 'false' with default threshold, got {result['status']}"
+        )
 
         # Should have empty pages list with default threshold
         assert result["pages"] == [], f"Expected empty pages list, got {result['pages']}"
 
-        print(f"\n✓ {PDF_THRESHOLD_SENSITIVE}: Default threshold gives status 'false' with 0 pages needing OCR")
-
+        print(
+            f"\n✓ {PDF_THRESHOLD_SENSITIVE}: Default threshold gives status 'false' with 0 pages needing OCR"
+        )
 
     def test_different_threshold_behaviors(self):
         """Verify different threshold behaviors give us true, false, and partial statuses."""
@@ -147,8 +156,9 @@ class TestOCRScenarios:
         assert result_low["status"] in ["true", "false", "partial"]
 
         # With higher threshold, we expect same or more pages to need OCR
-        assert len(result_high["pages"]) >= len(result_low["pages"]), \
+        assert len(result_high["pages"]) >= len(result_low["pages"]), (
             "Higher threshold should detect same or more pages needing OCR"
+        )
 
         print("\n✓ Confidence threshold effects:")
         print(f"  High threshold (0.9): {result_high['status']}, {len(result_high['pages'])} pages")
@@ -171,8 +181,12 @@ def test_quick_verification():
 
         result = detect_ocr(str(pdf_path))
 
-        assert result["status"] == expected_status, f"{pdf_name}: Expected status '{expected_status}', got '{result['status']}'"
-        assert len(result["pages"]) == expected_page_count, f"{pdf_name}: Expected {expected_page_count} pages, got {len(result['pages'])}"
+        assert result["status"] == expected_status, (
+            f"{pdf_name}: Expected status '{expected_status}', got '{result['status']}'"
+        )
+        assert len(result["pages"]) == expected_page_count, (
+            f"{pdf_name}: Expected {expected_page_count} pages, got {len(result['pages'])}"
+        )
 
         print(f"✓ {pdf_name}: status={expected_status}, pages={expected_page_count}")
 
@@ -199,7 +213,7 @@ if __name__ == "__main__":
                 print(f"\n{pdf_name} ({description}):")
                 print(f"  Status: {result['status']}")
                 print(f"  Pages needing OCR: {len(result['pages'])} pages")
-                if len(result['pages']) <= 10:
+                if len(result["pages"]) <= 10:
                     print(f"  Page numbers: {result['pages']}")
             else:
                 print(f"\n{pdf_name}: NOT FOUND")
