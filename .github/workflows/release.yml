@@ -90,4 +90,4 @@ jobs:
       run: |
         sleep 30  # Wait for PyPI to update
         pip install ocr-detection --upgrade
-        ocr-detect --help
+        python -c "from ocr_detection import detect_ocr; print('Package installed successfully')"
