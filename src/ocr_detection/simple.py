@@ -18,18 +18,26 @@ class OCRStatus(Enum):
 class OCRDetection:
     """Simple OCR detection interface."""
 
-    def __init__(self, confidence_threshold: float = 0.5, parallel: bool = True):
+    def __init__(self, confidence_threshold: float = 0.5, parallel: bool = True,
+                 include_images: bool = False, image_format: str = "png", image_dpi: int = 150):
         """Initialize OCR detection.
 
         Args:
             confidence_threshold: Minimum confidence for determining OCR need (0-1)
             parallel: Enable parallel processing for faster analysis
+            include_images: Include base64-encoded page images in results
+            image_format: Image format for rendering ("png" or "jpeg")
+            image_dpi: Resolution for image rendering (default 150)
         """
         self.confidence_threshold = confidence_threshold
         self.parallel = parallel
+        self.include_images = include_images
+        self.image_format = image_format
+        self.image_dpi = image_dpi
 
     def detect(
-        self, document: str | Path, parallel: bool | None = None, max_workers: int | None = None
+        self, document: str | Path, parallel: bool | None = None, max_workers: int | None = None,
+        include_images: bool | None = None
     ) -> dict[str, Any]:
         """Detect which pages need OCR processing.
 
@@ -37,30 +45,44 @@ class OCRDetection:
             document: Path to PDF document
             parallel: Override default parallel setting (optional)
             max_workers: Number of worker threads for parallel processing (optional)
+            include_images: Override default include_images setting (optional)
 
         Returns:
             Dictionary with:
                 - status: "true" (all pages), "false" (no pages), or "partial" (some pages)
                 - pages: List of page numbers needing OCR (1-indexed)
+                - page_images: Dict mapping page numbers to base64 images (if include_images=True)
         """
         document = Path(document)
 
         if not document.exists():
             raise FileNotFoundError(f"Document not found: {document}")
 
-        # Use instance setting if parallel not specified
+        # Use instance settings if not specified
         if parallel is None:
             parallel = self.parallel
+        if include_images is None:
+            include_images = self.include_images
 
         pages_needing_ocr = []
+        page_images = {}
         total_pages = 0
 
         with PDFAnalyzer(document) as analyzer:
             # Use parallel or sequential based on settings
             if parallel:
-                results = analyzer.analyze_all_pages_parallel(max_workers=max_workers)
+                results = analyzer.analyze_all_pages_parallel(
+                    max_workers=max_workers,
+                    include_images=include_images,
+                    image_format=self.image_format,
+                    image_dpi=self.image_dpi
+                )
             else:
-                results = analyzer.analyze_all_pages()
+                results = analyzer.analyze_all_pages(
+                    include_images=include_images,
+                    image_format=self.image_format,
+                    image_dpi=self.image_dpi
+                )
             total_pages = len(results)
 
             for result in results:
@@ -68,8 +90,13 @@ class OCRDetection:
                 needs_ocr = self._page_needs_ocr(result)
 
                 if needs_ocr:
-                    # Add 1-indexed page number
-                    pages_needing_ocr.append(result.page_number + 1)
+                    # Convert to 1-indexed page number (PDF pages start at 1, not 0)
+                    page_number_1_indexed = result.page_number + 1
+                    pages_needing_ocr.append(page_number_1_indexed)
+
+                    # Add image if available and requested (only for pages needing OCR)
+                    if include_images and result.page_image:
+                        page_images[page_number_1_indexed] = result.page_image
 
         # Determine status
         if len(pages_needing_ocr) == 0:
@@ -79,7 +106,13 @@ class OCRDetection:
         else:
             status = OCRStatus.PARTIAL
 
-        return {"status": status.value, "pages": pages_needing_ocr}
+        result_dict = {"status": status.value, "pages": pages_needing_ocr}
+
+        # Include page images if they were requested and collected
+        if include_images:
+            result_dict["page_images"] = page_images
+
+        return result_dict
 
     def _page_needs_ocr(self, result: AnalysisResult) -> bool:
         """Determine if a page needs OCR processing.
@@ -122,15 +155,24 @@ class OCRDetection:
 
 
 # Convenience function for one-line usage
-def detect_ocr(document: str | Path, parallel: bool = True) -> dict[str, Any]:
+def detect_ocr(document: str | Path, parallel: bool = True, include_images: bool = False,
+              image_format: str = "png", image_dpi: int = 150) -> dict[str, Any]:
     """Quick function to detect OCR requirements.
 
     Args:
         document: Path to PDF document
         parallel: Use parallel processing for faster analysis
+        include_images: Include base64-encoded page images in results
+        image_format: Image format for rendering ("png" or "jpeg")
+        image_dpi: Resolution for image rendering (default 150)
 
     Returns:
-        Dictionary with status and pages needing OCR
+        Dictionary with status, pages needing OCR, and optionally page images
     """
-    detector = OCRDetection(parallel=parallel)
+    detector = OCRDetection(
+        parallel=parallel,
+        include_images=include_images,
+        image_format=image_format,
+        image_dpi=image_dpi
+    )
     return detector.detect(document)

@@ -1,5 +1,6 @@
 """Core PDF detection and analysis functionality."""
 
+import base64
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -34,6 +35,7 @@ class AnalysisResult:
     text_length: int
     image_count: int
     details: dict[str, Any]
+    page_image: str | None = None
 
 
 class PDFAnalyzer:
@@ -63,7 +65,37 @@ class PDFAnalyzer:
         if self.plumber_pdf:
             self.plumber_pdf.close()
 
-    def analyze_page(self, page_num: int) -> AnalysisResult:
+    def _render_page_to_base64(
+        self, page: fitz.Page, image_format: str = "png", dpi: int = 150
+    ) -> str:
+        """Render a PDF page to base64-encoded image.
+
+        Args:
+            page: PyMuPDF page object
+            image_format: Output format ("png" or "jpeg")
+            dpi: Resolution in DPI (default 150)
+
+        Returns:
+            Base64-encoded string of the rendered page image
+        """
+        try:
+            # Create pixmap with specified DPI
+            pix = page.get_pixmap(dpi=dpi)
+
+            # Convert to bytes in specified format
+            img_bytes = pix.tobytes(image_format.lower())
+
+            # Encode to base64
+            base64_string = base64.b64encode(img_bytes).decode('utf-8')
+
+            return base64_string
+
+        except Exception:
+            # Return empty string if rendering fails
+            return ""
+
+    def analyze_page(self, page_num: int, include_image: bool = False,
+                    image_format: str = "png", image_dpi: int = 150) -> AnalysisResult:
         """Analyze a single page to determine its type."""
         if not self.doc or not self.plumber_pdf:
             raise RuntimeError("PDF not opened. Use within context manager.")
@@ -141,6 +173,11 @@ class PDFAnalyzer:
             },
         }
 
+        # Render page to base64 if requested
+        page_image = None
+        if include_image:
+            page_image = self._render_page_to_base64(fitz_page, image_format, image_dpi)
+
         return AnalysisResult(
             page_number=page_num,
             page_type=page_type,
@@ -150,24 +187,31 @@ class PDFAnalyzer:
             text_length=text_length,
             image_count=content_image_count,
             details=details,
+            page_image=page_image,
         )
 
-    def analyze_all_pages(self) -> list[AnalysisResult]:
+    def analyze_all_pages(self, include_images: bool = False,
+                         image_format: str = "png", image_dpi: int = 150) -> list[AnalysisResult]:
         """Analyze all pages in the PDF."""
         if not self.doc:
             raise RuntimeError("PDF not opened. Use within context manager.")
 
         results = []
         for page_num in range(len(self.doc)):
-            results.append(self.analyze_page(page_num))
+            results.append(self.analyze_page(page_num, include_images, image_format, image_dpi))
 
         return results
 
-    def analyze_all_pages_parallel(self, max_workers: int | None = None) -> list[AnalysisResult]:
+    def analyze_all_pages_parallel(self, max_workers: int | None = None,
+                                  include_images: bool = False, image_format: str = "png",
+                                  image_dpi: int = 150) -> list[AnalysisResult]:
         """Analyze all pages in the PDF using parallel processing.
 
         Args:
             max_workers: Maximum number of worker threads. Defaults to CPU count.
+            include_images: Whether to include base64-encoded page images.
+            image_format: Image format for rendering ("png" or "jpeg").
+            image_dpi: Resolution for image rendering.
 
         Returns:
             List of AnalysisResult objects, ordered by page number.
@@ -179,7 +223,7 @@ class PDFAnalyzer:
 
         # For small PDFs, use sequential processing
         if total_pages <= 10:
-            return self.analyze_all_pages()
+            return self.analyze_all_pages(include_images, image_format, image_dpi)
 
         # Determine number of workers
         if max_workers is None:
@@ -200,7 +244,7 @@ class PDFAnalyzer:
             # Submit tasks for each chunk
             future_to_chunk = {}
             for chunk in page_chunks:
-                future = executor.submit(self._analyze_pages_batch, chunk)
+                future = executor.submit(self._analyze_pages_batch, chunk, include_images, image_format, image_dpi)
                 future_to_chunk[future] = chunk
 
             # Collect results as they complete
@@ -213,7 +257,7 @@ class PDFAnalyzer:
                     chunk = future_to_chunk[future]
                     for page_num in chunk:
                         try:
-                            result = self.analyze_page(page_num)
+                            result = self.analyze_page(page_num, include_images, image_format, image_dpi)
                             results.append(result)
                         except Exception as page_error:
                             # Log error but continue with other pages
@@ -223,13 +267,17 @@ class PDFAnalyzer:
         results.sort(key=lambda r: r.page_number)
         return results
 
-    def _analyze_pages_batch(self, page_numbers: list[int]) -> list[AnalysisResult]:
+    def _analyze_pages_batch(self, page_numbers: list[int], include_images: bool = False,
+                            image_format: str = "png", image_dpi: int = 150) -> list[AnalysisResult]:
         """Analyze a batch of pages in a separate thread.
 
         This method creates its own PDF document instances to ensure thread safety.
 
         Args:
             page_numbers: List of page numbers to analyze.
+            include_images: Whether to include base64-encoded page images.
+            image_format: Image format for rendering ("png" or "jpeg").
+            image_dpi: Resolution for image rendering.
 
         Returns:
             List of AnalysisResult objects for the batch.
@@ -314,6 +362,22 @@ class PDFAnalyzer:
                     },
                 }
 
+                # Render page to base64 if requested
+                page_image = None
+                if include_images:
+                    try:
+                        # Create pixmap with specified DPI
+                        pix = fitz_page.get_pixmap(dpi=image_dpi)
+
+                        # Convert to bytes in specified format
+                        img_bytes = pix.tobytes(image_format.lower())
+
+                        # Encode to base64
+                        page_image = base64.b64encode(img_bytes).decode('utf-8')
+                    except Exception:
+                        # Return empty string if rendering fails
+                        page_image = ""
+
                 result = AnalysisResult(
                     page_number=page_num,
                     page_type=page_type,
@@ -323,6 +387,7 @@ class PDFAnalyzer:
                     text_length=text_length,
                     image_count=content_image_count,
                     details=details,
+                    page_image=page_image,
                 )
 
                 results.append(result)
@@ -330,21 +395,25 @@ class PDFAnalyzer:
         return results
 
     def analyze_all_pages_auto(
-        self, parallel: bool = True, max_workers: int | None = None
+        self, parallel: bool = True, max_workers: int | None = None,
+        include_images: bool = False, image_format: str = "png", image_dpi: int = 150
     ) -> list[AnalysisResult]:
         """Analyze all pages with automatic method selection.
 
         Args:
             parallel: If True, use parallel processing for large PDFs.
             max_workers: Maximum number of worker threads (only used if parallel=True).
+            include_images: Whether to include base64-encoded page images.
+            image_format: Image format for rendering ("png" or "jpeg").
+            image_dpi: Resolution for image rendering.
 
         Returns:
             List of AnalysisResult objects, ordered by page number.
         """
         if parallel and self.doc and len(self.doc) > 10:
-            return self.analyze_all_pages_parallel(max_workers)
+            return self.analyze_all_pages_parallel(max_workers, include_images, image_format, image_dpi)
         else:
-            return self.analyze_all_pages()
+            return self.analyze_all_pages(include_images, image_format, image_dpi)
 
     def get_summary(
         self, results: list[AnalysisResult] | None = None, parallel: bool = False
