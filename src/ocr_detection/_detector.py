@@ -94,6 +94,139 @@ class PDFAnalyzer:
             # Return empty string if rendering fails
             return ""
 
+    def _get_page_image_smart(
+        self, page: fitz.Page, page_type: PageType, image_format: str = "png", dpi: int = 150
+    ) -> str:
+        """Smart image extraction - use embedded images when available for better performance.
+
+        For scanned pages, extracts the embedded image directly from the PDF.
+        For text/mixed pages, renders the page as before.
+
+        Args:
+            page: PyMuPDF page object
+            page_type: Detected page type
+            image_format: Output format ("png" or "jpeg") - only used for rendering
+            dpi: Resolution in DPI (default 150) - only used for rendering
+
+        Returns:
+            Base64-encoded string of the page image
+        """
+        # For scanned pages or empty pages with large images, try to extract embedded image first
+        if page_type in (PageType.SCANNED, PageType.EMPTY):
+            try:
+                image_list = page.get_images()
+                if image_list:
+                    page_rect = page.rect
+                    page_area = page_rect.width * page_rect.height
+                    
+                    # Find the best candidate image (largest coverage of page)
+                    best_image = None
+                    best_coverage = 0
+                    
+                    for img in image_list:
+                        xref = img[0]
+                        
+                        # Get image rectangles on the page
+                        image_rects = page.get_image_rects(xref)
+                        if not image_rects:
+                            continue
+                            
+                        # Calculate total coverage of this image
+                        total_rect_area = sum(rect.width * rect.height for rect in image_rects)
+                        coverage = total_rect_area / page_area if page_area > 0 else 0
+                        
+                        # Look for images that cover a significant portion of the page (>60%)
+                        if coverage > 0.6 and coverage > best_coverage:
+                            best_coverage = coverage
+                            best_image = xref
+                    
+                    # If we found a good candidate, extract it
+                    if best_image is not None:
+                        try:
+                            img_data = self.doc.extract_image(best_image)
+                            if img_data and img_data.get("image"):
+                                # Check if the image is reasonably sized
+                                if (img_data.get("width", 0) > 200 and 
+                                    img_data.get("height", 0) > 200):
+                                    # Return the embedded image data directly
+                                    return base64.b64encode(img_data["image"]).decode('utf-8')
+                        except Exception:
+                            # If extraction fails, fall through to rendering
+                            pass
+            
+            except Exception:
+                # If anything fails with embedded image extraction, fall through to rendering
+                pass
+        
+        # For text/mixed pages, or if embedded extraction failed, render the page
+        return self._render_page_to_base64(page, image_format, dpi)
+
+    def _get_page_image_smart_with_doc(
+        self, page: fitz.Page, page_type: PageType, doc: fitz.Document, 
+        image_format: str = "png", dpi: int = 150
+    ) -> str:
+        """Smart image extraction with specific document instance (for thread safety).
+
+        Args:
+            page: PyMuPDF page object
+            page_type: Detected page type
+            doc: PyMuPDF document instance to use
+            image_format: Output format ("png" or "jpeg") - only used for rendering
+            dpi: Resolution in DPI (default 150) - only used for rendering
+
+        Returns:
+            Base64-encoded string of the page image
+        """
+        # For scanned pages or empty pages with large images, try to extract embedded image first
+        if page_type in (PageType.SCANNED, PageType.EMPTY):
+            try:
+                image_list = page.get_images()
+                if image_list:
+                    page_rect = page.rect
+                    page_area = page_rect.width * page_rect.height
+                    
+                    # Find the best candidate image (largest coverage of page)
+                    best_image = None
+                    best_coverage = 0
+                    
+                    for img in image_list:
+                        xref = img[0]
+                        
+                        # Get image rectangles on the page
+                        image_rects = page.get_image_rects(xref)
+                        if not image_rects:
+                            continue
+                            
+                        # Calculate total coverage of this image
+                        total_rect_area = sum(rect.width * rect.height for rect in image_rects)
+                        coverage = total_rect_area / page_area if page_area > 0 else 0
+                        
+                        # Look for images that cover a significant portion of the page (>60%)
+                        if coverage > 0.6 and coverage > best_coverage:
+                            best_coverage = coverage
+                            best_image = xref
+                    
+                    # If we found a good candidate, extract it
+                    if best_image is not None:
+                        try:
+                            img_data = doc.extract_image(best_image)
+                            if img_data and img_data.get("image"):
+                                # Check if the image is reasonably sized
+                                if (img_data.get("width", 0) > 200 and 
+                                    img_data.get("height", 0) > 200):
+                                    # Return the embedded image data directly
+                                    return base64.b64encode(img_data["image"]).decode('utf-8')
+                        except Exception:
+                            # If extraction fails, fall through to rendering
+                            pass
+            
+            except Exception:
+                # If anything fails with embedded image extraction, fall through to rendering
+                pass
+        
+        # For text/mixed pages, or if embedded extraction failed, render the page
+        return self._render_page_to_base64(page, image_format, dpi)
+
     def analyze_page(self, page_num: int, include_image: bool = False,
                     image_format: str = "png", image_dpi: int = 150) -> AnalysisResult:
         """Analyze a single page to determine its type."""
@@ -173,10 +306,10 @@ class PDFAnalyzer:
             },
         }
 
-        # Render page to base64 if requested
+        # Render page to base64 if requested (using smart extraction)
         page_image = None
         if include_image:
-            page_image = self._render_page_to_base64(fitz_page, image_format, image_dpi)
+            page_image = self._get_page_image_smart(fitz_page, page_type, image_format, image_dpi)
 
         return AnalysisResult(
             page_number=page_num,
@@ -362,21 +495,12 @@ class PDFAnalyzer:
                     },
                 }
 
-                # Render page to base64 if requested
+                # Render page to base64 if requested (using smart extraction)
                 page_image = None
                 if include_images:
-                    try:
-                        # Create pixmap with specified DPI
-                        pix = fitz_page.get_pixmap(dpi=image_dpi)
-
-                        # Convert to bytes in specified format
-                        img_bytes = pix.tobytes(image_format.lower())
-
-                        # Encode to base64
-                        page_image = base64.b64encode(img_bytes).decode('utf-8')
-                    except Exception:
-                        # Return empty string if rendering fails
-                        page_image = ""
+                    page_image = self._get_page_image_smart_with_doc(
+                        fitz_page, page_type, thread_doc, image_format, image_dpi
+                    )
 
                 result = AnalysisResult(
                     page_number=page_num,
