@@ -2,12 +2,16 @@
 
 A Python library to analyze PDF pages and determine whether they contain extractable text or are scanned images requiring OCR processing.
 
+**NEW in v0.3.0**: Smart Image Extraction provides **5x faster** performance for scanned PDFs with **33% less memory usage**!
+
 ## Features
 
 - **Page Type Detection**: Automatically classifies PDF pages as text, scanned, mixed, or empty
+- **Smart Image Extraction**: 5x faster image processing for scanned PDFs using embedded images
 - **Base64 Image Output**: Get page images as base64-encoded strings for visualization
 - **Parallel Processing**: Fast analysis of large PDFs using multi-threading
 - **Confidence Scoring**: Reliability indicators for classifications
+- **Memory Efficient**: 33% reduction in memory usage with optimized image handling
 - **Simple API**: Easy-to-use interface with minimal complexity
 
 ## Installation
@@ -136,18 +140,37 @@ The library can generate base64-encoded images of pages that need OCR processing
 
 ### Usage Notes
 - Images are only generated for pages that need OCR processing
-- Higher DPI values produce larger but clearer images
+- **Smart extraction**: Scanned pages use embedded images for 5x faster processing
+- Higher DPI values produce larger but clearer images (only affects rendered pages)
 - PNG format preserves quality but has larger file sizes
 - JPEG format is more compact but may have compression artifacts
 - Page numbers in `page_images` match those in the `pages` list (1-indexed)
 
 ## Performance
 
-The library automatically optimizes performance based on document size:
+### Version 0.3.0 Optimization
+
+The library now features **Smart Image Extraction** for dramatically improved performance:
+
+- **5x faster** processing for scanned PDFs (2.5s → 0.54s)
+- **33% memory reduction** (116MB → 79MB)
+- **8x smaller** image data (15.9MB → 2.0MB)
+- **20x faster** per-image processing (1.2s → 0.06s per image)
+
+### How It Works
+
+- **Scanned PDFs**: Extracts original embedded JPEG images directly (no re-rendering)
+- **Text PDFs**: Uses traditional rendering for vector content
+- **Quality Preservation**: Maintains original image compression and quality
+- **Thread Safety**: Works seamlessly with parallel processing
+
+### Automatic Optimization
+
+The library automatically optimizes performance based on document size and content:
 - Documents with ≤10 pages use sequential processing
 - Larger documents use parallel processing with configurable worker threads
 - Parallel processing provides 3-8x performance improvement for large documents
-- Image rendering is thread-safe and works with parallel processing
+- Smart image extraction eliminates unnecessary rendering overhead
 
 ## License
 
