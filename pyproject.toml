@@ -1,6 +1,6 @@
 [project]
 name = "ocr-detection"
-version = "0.4.0"
+version = "0.4.1"
 description = "A Python library to detect whether PDF pages contain extractable text or are scanned images requiring OCR"
 readme = "README.md"
 license = {text = "MIT"}
