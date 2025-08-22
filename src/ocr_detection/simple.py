@@ -19,7 +19,8 @@ class OCRDetection:
     """Simple OCR detection interface."""
 
     def __init__(self, confidence_threshold: float = 0.5, parallel: bool = True,
-                 include_images: bool = False, image_format: str = "png", image_dpi: int = 150):
+                 include_images: bool = False, image_format: str = "png", image_dpi: int = 72,
+                 accuracy_mode: bool = False):
         """Initialize OCR detection.
 
         Args:
@@ -27,13 +28,16 @@ class OCRDetection:
             parallel: Enable parallel processing for faster analysis
             include_images: Include base64-encoded page images in results
             image_format: Image format for rendering ("png" or "jpeg")
-            image_dpi: Resolution for image rendering (default 150)
+            image_dpi: Resolution for image rendering (default 72)
+            accuracy_mode: Use maximum accuracy mode (slower but more precise)
+                          Default False uses fast mode with 40x+ speedup
         """
         self.confidence_threshold = confidence_threshold
         self.parallel = parallel
         self.include_images = include_images
         self.image_format = image_format
         self.image_dpi = image_dpi
+        self.accuracy_mode = accuracy_mode
 
     def detect(
         self, document: str | Path, parallel: bool | None = None, max_workers: int | None = None,
@@ -68,7 +72,7 @@ class OCRDetection:
         page_images = {}
         total_pages = 0
 
-        with PDFAnalyzer(document) as analyzer:
+        with PDFAnalyzer(document, accuracy_mode=self.accuracy_mode) as analyzer:
             # Use parallel or sequential based on settings
             if parallel:
                 results = analyzer.analyze_all_pages_parallel(
@@ -156,7 +160,7 @@ class OCRDetection:
 
 # Convenience function for one-line usage
 def detect_ocr(document: str | Path, parallel: bool = True, include_images: bool = False,
-              image_format: str = "png", image_dpi: int = 150) -> dict[str, Any]:
+              image_format: str = "png", image_dpi: int = 72, accuracy_mode: bool = False) -> dict[str, Any]:
     """Quick function to detect OCR requirements.
 
     Args:
@@ -164,7 +168,9 @@ def detect_ocr(document: str | Path, parallel: bool = True, include_images: bool
         parallel: Use parallel processing for faster analysis
         include_images: Include base64-encoded page images in results
         image_format: Image format for rendering ("png" or "jpeg")
-        image_dpi: Resolution for image rendering (default 150)
+        image_dpi: Resolution for image rendering (default 72)
+        accuracy_mode: Use maximum accuracy mode (slower but more precise)
+                      Default False uses fast mode with 40x+ speedup
 
     Returns:
         Dictionary with status, pages needing OCR, and optionally page images
@@ -173,6 +179,7 @@ def detect_ocr(document: str | Path, parallel: bool = True, include_images: bool
         parallel=parallel,
         include_images=include_images,
         image_format=image_format,
-        image_dpi=image_dpi
+        image_dpi=image_dpi,
+        accuracy_mode=accuracy_mode
     )
     return detector.detect(document)

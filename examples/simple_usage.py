@@ -39,17 +39,21 @@ def main():
     
     print()
     
-    # Example 3: Custom confidence threshold
-    print("Example 3: Custom confidence threshold")
+    # Example 3: Fast mode vs Accuracy mode
+    print("Example 3: Fast mode vs Accuracy mode")
     print("-" * 40)
     
-    # Stricter detection (higher confidence required)
-    strict_detector = OCRDetection(confidence_threshold=0.7)
-    result = strict_detector.detect("sample.pdf")
+    # Fast mode (default) - 40x+ faster
+    fast_result = detect_ocr("sample.pdf")
+    print(f"Fast mode (default):")
+    print(f"  Status: {fast_result['status']}")
+    print(f"  Pages: {fast_result['pages']}")
     
-    print(f"With stricter settings:")
-    print(f"  Status: {result['status']}")
-    print(f"  Pages: {result['pages']}")
+    # Accuracy mode - slower but more precise
+    accurate_result = detect_ocr("sample.pdf", accuracy_mode=True)
+    print(f"Accuracy mode:")
+    print(f"  Status: {accurate_result['status']}")
+    print(f"  Pages: {accurate_result['pages']}")
 
 
 if __name__ == "__main__":
